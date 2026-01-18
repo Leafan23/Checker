@@ -18,3 +18,4 @@ class MyCtk(ctk.CTk):
     def add_to_main_tree(self):
         self.kompas.open(r"C:\Users\Leafan\Desktop\Деталь.m3d")
         self.main_tree.append(File())
+        pass

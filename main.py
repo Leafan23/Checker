@@ -7,3 +7,5 @@ if __name__ == '__main__':
     window.mainloop()
     print(window.main_tree)
 
+    print(window.main_tree)
+
