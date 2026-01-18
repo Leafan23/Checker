@@ -1,4 +1,6 @@
 from win32com.client import gencache, Dispatch
+from Classes import File, Part, Pdf, Assemble
+import os
 
 
 class API:
@@ -6,6 +8,9 @@ class API:
         self.api7 = gencache.EnsureModule("{69AC2981-37C0-4379-84FD-5DD2F3C0A520}", 0, 1, 0)
         self.application = Dispatch("KOMPAS.Application.7")
         self.application.Visible = True
+
+        self.main_tree: list[File] = []
+
         self.documents = self.application.Documents
         self.path = ''
         self.drawing_number  = ''
@@ -37,6 +42,30 @@ class API:
                 property_value = property_keeper.GetPropertyValue(property, "", True, True)
                 return property_value[1]
         return False
+
+    def add_to_main_tree(self, path):
+        #self.open(path)
+        if os.path.splitext(path)[1] == '.m3d':
+            self.main_tree.append(Part(self, id_number=len(self.main_tree)))
+        elif os.path.splitext(path)[1] == '.a3d':
+            self.main_tree.append(Assemble(self, id_number=len(self.main_tree)))
+
+    def scan(self, path):
+        queue_for_check = []
+        # открыть сборку
+        # добавить в список
+
+        # если есть детали, открыть их поочередно и добавить в список с добавлением родителя изначальной сборки, но только если они небыли раньше обработаны
+        # закрыть детали после добавления
+        # посчитать количество подсборок (например 3)
+        # добавить подсборки в таблицу и занести их адрес в список на проверку
+        # закрыть основную сборку
+        # открыть сборку из списка и удалить адрес из этого же списка
+        # повторять пока список не будет пуст
+
+        self.open(path)
+        self.add_to_main_tree(path)
+
 
 
 if __name__ == '__main__':
