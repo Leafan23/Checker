@@ -1,11 +1,9 @@
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
+import GUI
 
 
 if __name__ == '__main__':
-    print_hi('PyCharm')
-
+    #попросить компас вернуть текущий документ
+    window = GUI.MyCtk()
+    window.mainloop()
+    print(window.main_tree)
 
