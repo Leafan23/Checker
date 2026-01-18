@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import API
-from Classes import File
+from Classes import File, Part, Pdf, Assemble
+import os
 
 
 class MyCtk(ctk.CTk):
@@ -10,12 +11,14 @@ class MyCtk(ctk.CTk):
         self.main_tree: list[File] = []
 
         self.kompas_start()
-        self.add_to_main_tree()
+        self.add_to_main_tree(r"C:\Users\Leafan\Desktop\Сборка.a3d")
 
     def kompas_start(self):
         self.kompas = API.API()
 
-    def add_to_main_tree(self):
-        self.kompas.open(r"C:\Users\Leafan\Desktop\Деталь.m3d")
-        self.main_tree.append(File())
-        pass
+    def add_to_main_tree(self, path):
+        self.kompas.open(path)
+        if os.path.splitext(path)[1] == '.m3d':
+            self.main_tree.append(Part(self.kompas, id_number=len(self.main_tree)))
+        elif os.path.splitext(path)[1] == '.a3d':
+            self.main_tree.append(Assemble(self.kompas, id_number=len(self.main_tree)))
