@@ -17,6 +17,7 @@ class API:
         self.drawing_name = ''
         self.document = None
         self.part_7 = None
+        self.model_objects = None
 
     def open(self, path):
 
@@ -51,7 +52,8 @@ class API:
             self.main_tree.append(Assemble(self, id_number=len(self.main_tree)))
 
     def scan(self, path):
-        queue_for_check = []
+        queue_for_check_parts = []
+        queue_for_check_assembles = []
         # открыть сборку
         # добавить в список
 
@@ -65,6 +67,32 @@ class API:
 
         self.open(path)
         self.add_to_main_tree(path)
+
+        feature_7 = self.api7.IFeature7(self.part_7)
+
+        for i in feature_7.SubFeatures(0, True, False):
+            if i.ModelObjectType == 104:
+                print(i.ModelObjectType)
+                print(i.Name)
+                part_7 = self.api7.IPart7(i)
+                print(part_7.FileName)
+                print('Это деталь? ', part_7.Detail)
+                print('Обозначение: ', part_7.Marking)
+                print('Количество вставок: ', part_7.InstanceCount)
+                print('-----------------------')
+                if part_7.Detail:
+                    queue_for_check_parts.append(part_7.FileName)
+                else:
+                    queue_for_check_assembles.append(part_7.FileName)
+        queue_for_check_parts = list(set(queue_for_check_parts))
+        queue_for_check_assembles = list(set(queue_for_check_assembles))
+        print(queue_for_check_parts)
+        print(queue_for_check_assembles)
+
+        for i in queue_for_check_parts:
+            self.open(i)
+
+
 
 
 
