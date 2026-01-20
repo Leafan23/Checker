@@ -1,7 +1,9 @@
+#TODO добавить функцию проверки на необходимые файлы, чертеж, спецификация, pdf
 from API import API
 
+
 # Принимает на вход класс IKompasDocument.
-# Обрабатывает файл, проверяет на привязанные чертежи и спецификации
+# Обрабатывает файл, и выдает все привязанные файлы в виде списка
 def check_attached_documents(document):
     documents_array = ()
     document_3d = kompas.api7.IKompasDocument3D(document)
@@ -18,13 +20,17 @@ def check_attached_documents(document):
     property_keeper = kompas.api7.IPropertyKeeper(document)
     documents_array = product_data_manager.ObjectAttachedDocuments(property_keeper) + documents_array
 
-    print(documents_array)
+    # преобразовываем в список и удаляем текущий документ из списка
+    documents_array = list(documents_array)
+    documents_array.remove(document.PathName)
+    if not documents_array:
+        return None
     return documents_array
 
 if __name__ == '__main__':
     kompas = API()
     kompas_document = kompas.application.ActiveDocument
-    check_attached_documents(kompas_document)
+    print(check_attached_documents(kompas_document))
 
 '''if __name__ == '__main__':
     kompas = API()
