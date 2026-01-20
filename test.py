@@ -1,20 +1,25 @@
 from API import API
 
+# Принимает на вход класс IKompasDocument.
+# Обрабатывает файл, проверяет на привязанные чертежи и спецификации
 def check_attached_documents(document):
-    print(document)
+    documents_array = ()
     document_3d = kompas.api7.IKompasDocument3D(document)
-
-    part_7 = kompas.api7.IPart7(document_3d.TopPart)
     product_data_manager = kompas.api7.IProductDataManager(document)
 
+    # возвращает спецификации, только из 3Д документов
     if document.DocumentType == 4 or document.DocumentType == 5:
-        iIPropertyKeeper_topPart = kompas.api7.IPropertyKeeper(part_7)
-        print(f'Связанные спецификации:\n' + '\n'.join(
-            product_data_manager.ObjectAttachedDocuments(iIPropertyKeeper_topPart)) + '\n')
+        part_7 = kompas.api7.IPart7(document_3d.TopPart)
+        property_keeper = kompas.api7.IPropertyKeeper(part_7)
+        if product_data_manager.ObjectAttachedDocuments(property_keeper) is not None:
+            documents_array = product_data_manager.ObjectAttachedDocuments(property_keeper) + documents_array
 
-    iIPropertyKeeper_doc = kompas.api7.IPropertyKeeper(document)
-    print(f'Список подключенных к объекту документов без спецификаций:\n' + '\n'.join(
-        product_data_manager.ObjectAttachedDocuments(iIPropertyKeeper_doc)) + '\n')
+    # возвращает все документы включая ссылку на себя же
+    property_keeper = kompas.api7.IPropertyKeeper(document)
+    documents_array = product_data_manager.ObjectAttachedDocuments(property_keeper) + documents_array
+
+    print(documents_array)
+    return documents_array
 
 if __name__ == '__main__':
     kompas = API()
