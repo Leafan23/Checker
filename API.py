@@ -19,9 +19,11 @@ class API:
         self.part_7 = None
         self.model_objects = None
 
+    # принимает путь до файла в виде строки
     def open(self, path):
 
-        #Добавить проверку на существующий путь
+        # добавить проверку на существующий путь
+        # добавить проверку на поддерживаемые типы файлов
 
         document = self.documents.Open(path, 1, 0)
         self.document = document
@@ -84,6 +86,8 @@ class API:
                     queue_for_check_parts.append(part_7.FileName)
                 else:
                     queue_for_check_assembles.append(part_7.FileName)
+
+        # удаление из списка повторяющихся файлов
         queue_for_check_parts = list(set(queue_for_check_parts))
         queue_for_check_assembles = list(set(queue_for_check_assembles))
         print(queue_for_check_parts)
@@ -92,6 +96,30 @@ class API:
         for i in queue_for_check_parts:
             self.open(i)
 
+    # Принимает на вход класс IKompasDocument.
+    # Обрабатывает файл, и выдает все привязанные файлы в виде списка
+    def check_attached_documents(self, document):
+        documents_array = ()
+        document_3d = self.api7.IKompasDocument3D(document)
+        product_data_manager = self.api7.IProductDataManager(document)
+
+        # возвращает спецификации, только из 3Д документов
+        if document.DocumentType == 4 or document.DocumentType == 5:
+            part_7 = self.api7.IPart7(document_3d.TopPart)
+            property_keeper = self.api7.IPropertyKeeper(part_7)
+            if product_data_manager.ObjectAttachedDocuments(property_keeper) is not None:
+                documents_array = product_data_manager.ObjectAttachedDocuments(property_keeper) + documents_array
+
+        # возвращает все документы включая ссылку на себя же
+        property_keeper = self.api7.IPropertyKeeper(document)
+        documents_array = product_data_manager.ObjectAttachedDocuments(property_keeper) + documents_array
+
+        # преобразовываем в список и удаляем текущий документ из списка
+        documents_array = list(documents_array)
+        documents_array.remove(document.PathName)
+        if not documents_array:
+            return None
+        return documents_array
 
 
 
