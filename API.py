@@ -2,6 +2,8 @@ from win32com.client import gencache, Dispatch
 from Classes import File, Part, Pdf, Assemble
 import os
 
+from test import check_attached_documents
+
 
 class API:
     def __init__(self):
@@ -34,6 +36,12 @@ class API:
             self.part_7 = kompas_document_3d.TopPart
             self.drawing_number = self.get_property_value('Обозначение')
             self.drawing_name = self.get_property_value('Наименование')
+
+            if document.DocumentType == 4:
+                if self.check_attached_documents(document) is not []:
+                    i = os.path.basename(path)
+                    if self.drawing_number == os.path.splitext(i)[0]:
+                        print(os.path.splitext(i)[0])
 
     def get_property_value(self, property_name):
         property_mng = self.api7.IPropertyMng(self.application)
