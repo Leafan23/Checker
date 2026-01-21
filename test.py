@@ -1,5 +1,5 @@
 #TODO добавить функцию проверки на необходимые файлы, чертеж, спецификация, pdf
-from API import API
+#from API import API
 
 
 # Принимает на вход класс IKompasDocument.
