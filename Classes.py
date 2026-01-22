@@ -19,7 +19,7 @@ class Part(File):
         super().__init__(kompas, id_number)
         self.type = 2
         self.parent = None
-        self.no_drawing = False
+        self.drawing = False # чертеж присутствует - True; чертеж отсутствует - False
         self.drawing_number = kompas.drawing_number
         self.drawing_name = kompas.drawing_name
 

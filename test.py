@@ -1,5 +1,5 @@
 #TODO добавить функцию проверки на необходимые файлы, чертеж, спецификация, pdf
-#from API import API
+import API
 
 
 # Принимает на вход класс IKompasDocument.
@@ -28,7 +28,7 @@ def check_attached_documents(document):
     return documents_array
 
 if __name__ == '__main__':
-    kompas = API()
+    kompas = API.API()
     kompas_document = kompas.application.ActiveDocument
     print(check_attached_documents(kompas_document))
 
@@ -59,3 +59,30 @@ if __name__ == '__main__':
             for k in range(property_mng.PropertyCount(kompas_document)):  # перебор свойств
                 property = property_mng.GetProperty(kompas_document, k)
                 #print(k, property.Name, property_keeper.GetPropertyValue(property, False, False)[1])'''
+
+'''from API import API
+
+
+def attach_document():
+    product_data_manager.SetObjectAttachedDocuments(property_keeper, (r"D:\Projects\Checker\Kompas_files\ГКЮШ.000.000 - Сборка.spw",
+                                                                           r"D:\Projects\Checker\Kompas_files\ГКЮШ.000.000 - Сборка.cdw",
+                                                                           r"D:\Projects\Checker\Kompas_files\ГКЮШ.000.000 - Сборка — копия.spw",
+                                                                           r"D:\Projects\Checker\Kompas_files\ГКЮШ.000.000 - Сборка — копия.cdw"))
+
+kompas = API()
+document = kompas.application.ActiveDocument
+document_3d = kompas.api7.IKompasDocument3D(document)
+part_7 = document_3d.TopPart
+property_keeper = kompas.api7.IPropertyKeeper(part_7)
+product_data_manager = kompas.api7.IProductDataManager(document)
+
+property_manager = kompas.api7.IPropertyMng(kompas.application)
+
+#attach_document()
+
+
+for i in range(property_manager.PropertyCount(document)):
+    property = property_manager.GetProperty(document, i)
+    #print(property.Name, ':    ', property_keeper.GetPropertyValue(property, "", True, True)[1])
+for i in product_data_manager.ObjectAttachedDocuments(property_keeper):
+    print(i)'''

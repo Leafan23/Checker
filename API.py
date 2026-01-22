@@ -9,7 +9,7 @@ class API:
     def __init__(self):
         self.api7 = gencache.EnsureModule("{69AC2981-37C0-4379-84FD-5DD2F3C0A520}", 0, 1, 0)
         self.application = Dispatch("KOMPAS.Application.7")
-        self.application.Visible = True
+        self.application.Visible = False
 
         self.main_tree: list[File] = []
 
@@ -24,10 +24,13 @@ class API:
     # принимает путь до файла в виде строки
     def open(self, path):
 
-        # добавить проверку на существующий путь
         # добавить проверку на поддерживаемые типы файлов
+        attached_documents = []
+        if not os.path.exists(path):
+            return False
 
         document = self.documents.Open(path, 1, 0)
+        self.add_to_main_tree(path)
         self.document = document
         self.path = path
 
@@ -38,10 +41,30 @@ class API:
             self.drawing_name = self.get_property_value('Наименование')
 
             if document.DocumentType == 4:
-                if self.check_attached_documents(document) is not []:
-                    i = os.path.basename(path)
-                    if self.drawing_number == os.path.splitext(i)[0]:
-                        print(os.path.splitext(i)[0])
+                attached_documents = self.check_attached_documents(document)
+                if attached_documents is not None:
+
+                    # проверка привязанных документов
+                    for i in attached_documents:
+
+                        # проверка на существование документа
+                        if os.path.exists(i):
+                            print('это: ', os.path.splitext(path)[0], 'равно этому:', os.path.splitext(i)[0])
+                            if os.path.splitext(path)[0] == os.path.splitext(i)[0]: # path == i без расширения
+                                self.main_tree[-1].drawing = True
+                        else:
+                            print('Типо удален из документов', i)
+                            pass # тут надо удалить документ из привязанных
+                else:
+                    if self.find_cdw(document):
+                        product_data_manager = self.api7.IProductDataManager(document)
+                        property_keeper = self.api7.IPropertyKeeper(self.part_7)
+                        product_data_manager.SetObjectAttachedDocuments(property_keeper, self.find_cdw(document))
+                        document.Save() #TODO Убедится, что нужно сохранение. так как в .Close это предусмотрено
+        document.Close(1)
+
+                        # проверка на
+        return True
 
     def get_property_value(self, property_name):
         property_mng = self.api7.IPropertyMng(self.application)
@@ -76,7 +99,6 @@ class API:
         # повторять пока список не будет пуст
 
         self.open(path)
-        self.add_to_main_tree(path)
 
         feature_7 = self.api7.IFeature7(self.part_7)
 
@@ -107,7 +129,7 @@ class API:
     # Принимает на вход класс IKompasDocument.
     # Обрабатывает файл, и выдает все привязанные файлы в виде списка
     def check_attached_documents(self, document):
-        documents_array = ()
+        documents_array = () #TODO проверить на ненужность documents_array = ()
         document_3d = self.api7.IKompasDocument3D(document)
         product_data_manager = self.api7.IProductDataManager(document)
 
@@ -128,6 +150,22 @@ class API:
         if not documents_array:
             return None
         return documents_array
+
+    def find_pdf(self):
+        pass
+
+    def find_spw(self):
+        pass
+
+    def find_cdw(self, document):
+        if document.DocumentType == 4:
+            if os.path.exists(document.Path + os.path.splitext(document.Name)[0] + '.cdw'):
+                return document.Path + os.path.splitext(document.Name)[0] + '.cdw'
+            return None
+        elif(document.DocumentType == 5):
+            pass
+        else:
+            return None
 
 
 
