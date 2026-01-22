@@ -2,14 +2,12 @@ from win32com.client import gencache, Dispatch
 from Classes import File, Part, Pdf, Assemble
 import os
 
-from test import check_attached_documents
-
 
 class API:
     def __init__(self):
         self.api7 = gencache.EnsureModule("{69AC2981-37C0-4379-84FD-5DD2F3C0A520}", 0, 1, 0)
         self.application = Dispatch("KOMPAS.Application.7")
-        self.application.Visible = False
+        self.application.Visible = True
 
         self.main_tree: list[File] = []
 
@@ -39,9 +37,8 @@ class API:
             self.part_7 = kompas_document_3d.TopPart
             self.drawing_number = self.get_property_value('Обозначение')
             self.drawing_name = self.get_property_value('Наименование')
-
+            attached_documents = self.check_attached_documents(document)
             if document.DocumentType == 4:
-                attached_documents = self.check_attached_documents(document)
                 if attached_documents is not None:
 
                     # проверка привязанных документов
@@ -49,7 +46,6 @@ class API:
 
                         # проверка на существование документа
                         if os.path.exists(i):
-                            print('это: ', os.path.splitext(path)[0], 'равно этому:', os.path.splitext(i)[0])
                             if os.path.splitext(path)[0] == os.path.splitext(i)[0]: # path == i без расширения
                                 self.main_tree[-1].drawing = True
                         else:
@@ -60,10 +56,33 @@ class API:
                         product_data_manager = self.api7.IProductDataManager(document)
                         property_keeper = self.api7.IPropertyKeeper(self.part_7)
                         product_data_manager.SetObjectAttachedDocuments(property_keeper, self.find_cdw(document))
-                        document.Save() #TODO Убедится, что нужно сохранение. так как в .Close это предусмотрено
-        document.Close(1)
+                        self.main_tree[-1].drawing = True #TODO проверить работоспособность этой строки
+                        document.Save()
+            # для документа сборки
+            else:
+                if attached_documents is not None:
+                    # обработка вложенных документов
+                    for i in attached_documents:
+                        if os.path.exists(i):
+                            if os.path.splitext(i)[1] == '.spw':
+                                if os.path.splitext(path)[0] == os.path.splitext(i)[0]:  # path == i без расширения
+                                    self.main_tree[-1].bill_of_material = True
+                            elif os.path.splitext(i)[1] == '.cdw':
+                                print(os.path.splitext(path)[0], ' == ', os.path.splitext(i)[0]+' СБ')
+                                if os.path.splitext(path)[0]+' СБ' == os.path.splitext(i)[0]:  # path == i с добавлением 'СБ'
+                                    self.main_tree[-1].drawing = True
+                                #TODO добавить открытие чертежа и проверку, есть ли спецификация, если есть спецификация в чертеже, BOM = True
+                        else:
+                            print('Типо удален из документов', i)
+                            pass  # тут надо удалить документ из привязанных
+                    pass
+                else:
+                    self.find_spw(document)
+                    self.find_cdw(document)
+        #TODO при открытии чертежа, проверить наличие спецификации на чертеже, проверить обозначение на соответствие имени файла
+        #TODO при открытии спецификации, проверить на соответствие обозначения
 
-                        # проверка на
+        #document.Close(1) #TODO раскоментить при сборке в exe
         return True
 
     def get_property_value(self, property_name):
@@ -154,7 +173,7 @@ class API:
     def find_pdf(self):
         pass
 
-    def find_spw(self):
+    def find_spw(self, document):
         pass
 
     def find_cdw(self, document):

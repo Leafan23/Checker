@@ -1,5 +1,9 @@
 
 
+class Files:
+    def __init__(self):
+        pass
+
 class File:
     def __init__(self, kompas, id_number):
         self.kompas = kompas
@@ -29,3 +33,4 @@ class Assemble(Part):
     def __init__(self, kompas, id_number):
         super().__init__(kompas, id_number)
         self.type = 3
+        self.bill_of_material = False # спецификация присутствует - True; спецификация отсутствует - False
