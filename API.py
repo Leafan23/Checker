@@ -21,12 +21,9 @@ class API:
 
     # принимает путь до файла в виде строки
     def open(self, path):
-
         # добавить проверку на поддерживаемые типы файлов
-        attached_documents = []
         if not os.path.exists(path):
             return False
-
         document = self.documents.Open(path, 1, 0)
         self.add_to_main_tree(path)
         self.document = document
@@ -40,56 +37,35 @@ class API:
             self.drawing_number = self.get_property_value('Обозначение')
             self.drawing_name = self.get_property_value('Наименование')
             attached_documents = self.check_attached_documents(document)
+            # открытие для детали
             if document.DocumentType == 4:
                 product_data_manager = self.api7.IProductDataManager(document)
                 property_keeper = self.api7.IPropertyKeeper(self.part_7)
                 if attached_documents is not None:
-                    documents_count = 0
                     # проверка привязанных документов
                     for attached_document in attached_documents:
+                        if os.path.splitext(path)[0] == os.path.splitext(attached_document)[0]: # path == i без расширения
+                            self.main_tree[-1].drawing = True
 
-                        # проверка на существование документа
-                        if os.path.exists(attached_document):
-                            if os.path.splitext(path)[0] == os.path.splitext(attached_document)[0]: # path == i без расширения
-                                self.main_tree[-1].drawing = True
-                        else:
-                            #TODO дописать удаление несуществующих документов
-                            attached_documents.remove(attached_document)
-                            print('Типо удален из документов', attached_document)
-                            product_objects = product_data_manager.ProductObjects(1)
-                            for product in product_objects:
-                                if 'IPropertyKeeper' in str(product):
-                                    unique_meta_object_key = [product.UniqueMetaObjectKey]
-                                    print(unique_meta_object_key)
-                                    #product_data_manager.DeleteProductObject(unique_meta_object_key)
-                            print('product_objects: ', product_objects)
-                            pass # тут надо удалить документ из привязанных
-                        documents_count += 1
-
-
+                # поиск и добавление чертежа в детали
                 else:
                     if self.find_cdw(document):
                         product_data_manager.SetObjectAttachedDocuments(property_keeper, self.find_cdw(document))
                         self.main_tree[-1].drawing = True #TODO проверить работоспособность этой строки
                         document.Save()
-            # для документа сборки
+            # открытие для сборки
             else:
                 if attached_documents is not None:
                     # обработка вложенных документов
                     for i in attached_documents:
-                        if os.path.exists(i):
-                            if os.path.splitext(i)[1] == '.spw':
-                                if os.path.splitext(path)[0] == os.path.splitext(i)[0]:  # path == i без расширения
-                                    self.main_tree[-1].bill_of_material = True
-                            elif os.path.splitext(i)[1] == '.cdw':
-                                print(os.path.splitext(path)[0], ' == ', os.path.splitext(i)[0]+' СБ')
-                                if os.path.splitext(path)[0]+' СБ' == os.path.splitext(i)[0]:  # path == i с добавлением 'СБ'
-                                    self.main_tree[-1].drawing = True
-                                #TODO добавить открытие чертежа и проверку, есть ли спецификация, если есть спецификация в чертеже, BOM = True
-                        else:
-                            print('Типо удален из документов', i)
-                            pass  # тут надо удалить документ из привязанных
-                    pass
+                        if os.path.splitext(i)[1] == '.spw':
+                            if os.path.splitext(path)[0] == os.path.splitext(i)[0]:  # path == i без расширения
+                                self.main_tree[-1].bill_of_material = True
+                        elif os.path.splitext(i)[1] == '.cdw':
+                            print(os.path.splitext(path)[0], ' == ', os.path.splitext(i)[0]+' СБ')
+                            if os.path.splitext(path)[0]+' СБ' == os.path.splitext(i)[0]:  # path == i с добавлением 'СБ'
+                                self.main_tree[-1].drawing = True
+                            #TODO добавить открытие чертежа и проверку, есть ли спецификация, если есть спецификация в чертеже, BOM = True
                 else:
                     self.find_spw(document)
                     self.find_cdw(document)
