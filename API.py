@@ -39,22 +39,34 @@ class API:
             self.drawing_name = self.get_property_value('Наименование')
             attached_documents = self.check_attached_documents(document)
             if document.DocumentType == 4:
+                product_data_manager = self.api7.IProductDataManager(document)
+                property_keeper = self.api7.IPropertyKeeper(self.part_7)
                 if attached_documents is not None:
-
+                    documents_count = 0
                     # проверка привязанных документов
-                    for i in attached_documents:
+                    for attached_document in attached_documents:
 
                         # проверка на существование документа
-                        if os.path.exists(i):
-                            if os.path.splitext(path)[0] == os.path.splitext(i)[0]: # path == i без расширения
+                        if os.path.exists(attached_document):
+                            if os.path.splitext(path)[0] == os.path.splitext(attached_document)[0]: # path == i без расширения
                                 self.main_tree[-1].drawing = True
                         else:
-                            print('Типо удален из документов', i)
+                            #TODO дописать удаление несуществующих документов
+                            attached_documents.remove(attached_document)
+                            print('Типо удален из документов', attached_document)
+                            product_objects = product_data_manager.ProductObjects(1)
+                            for product in product_objects:
+                                if 'IPropertyKeeper' in str(product):
+                                    unique_meta_object_key = [product.UniqueMetaObjectKey]
+                                    print(unique_meta_object_key)
+                                    #product_data_manager.DeleteProductObject(unique_meta_object_key)
+                            print('product_objects: ', product_objects)
                             pass # тут надо удалить документ из привязанных
+                        documents_count += 1
+
+
                 else:
                     if self.find_cdw(document):
-                        product_data_manager = self.api7.IProductDataManager(document)
-                        property_keeper = self.api7.IPropertyKeeper(self.part_7)
                         product_data_manager.SetObjectAttachedDocuments(property_keeper, self.find_cdw(document))
                         self.main_tree[-1].drawing = True #TODO проверить работоспособность этой строки
                         document.Save()
