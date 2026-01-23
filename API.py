@@ -32,6 +32,8 @@ class API:
         self.document = document
         self.path = path
 
+        self.remove_unavailable_documents(document)
+
         if document.DocumentType == 4 or document.DocumentType == 5:
             kompas_document_3d = self.api7.IKompasDocument3D(document)
             self.part_7 = kompas_document_3d.TopPart
@@ -156,6 +158,36 @@ class API:
 
         for i in queue_for_check_parts:
             self.open(i)
+
+    # костыль для удаления недействительных документов
+    def remove_unavailable_documents(self, document):
+        if document.DocumentType == 4 or document.DocumentType == 5:
+            available_documents = []
+            attached_documents = self.check_attached_documents(document)
+            kompas_document_3d = self.api7.IKompasDocument3D(document)
+            self.part_7 = kompas_document_3d.TopPart
+            property_keeper = self.api7.IPropertyKeeper(self.part_7)
+            for path_to_document in attached_documents:
+                if os.path.exists(path_to_document):
+                    available_documents.append(path_to_document)
+
+            # удалить все документы
+            product_data_manager = self.api7.IProductDataManager(document)
+            product_objects = []
+            if isinstance(product_data_manager.ProductObjects(1), tuple):
+                product_objects += product_data_manager.ProductObjects(1)
+            else:
+                product_objects.append(product_data_manager.ProductObjects(1))
+            for product in product_objects:
+                if 'IPropertyKeeper' in str(product):
+                    unique_meta_object_key = product.UniqueMetaObjectKey
+                    product_data_manager.DeleteProductObject(unique_meta_object_key)
+            # добавить вернуть документы в список
+            product_data_manager.SetObjectAttachedDocuments(self.part_7, available_documents)
+            return True
+        else:
+            return False
+
 
     # Принимает на вход класс IKompasDocument.
     # Обрабатывает файл, и выдает все привязанные файлы в виде списка
