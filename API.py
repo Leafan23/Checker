@@ -58,47 +58,42 @@ class API:
 
             # открытие для сборки
             else:
-                print(attached_documents)
                 documents_for_attach = []
-
-                print(attached_documents)
-                print(documents_for_attach)
-                if attached_documents is None:
-                    documents_for_attach = []
-                else:
+                if attached_documents is not None:
                     documents_for_attach.extend(attached_documents)
+
                 if not attached_documents:
                     # TODO добавить открытие чертежа и проверку, есть ли спецификация, если есть спецификация в чертеже, BOM = True
-                    print('Пусто')
-                    print('Find .spw')
-                    print('Find .cdw')
                     if self.find_cdw(document):
                         documents_for_attach.append(self.find_cdw(document))
                         self.main_tree[-1].drawing = True  # TODO проверить работоспособность этой строки
-                        document.Save()
                     if self.find_spw(document):
                         documents_for_attach.append(self.find_spw(document))
                         self.main_tree[-1].bill_of_material = True  # TODO проверить работоспособность этой строки
 
                 elif any(".spw" in item for item in attached_documents) and not any(".cdw" in item for item in attached_documents):
-                    print('spw нашли')
                     for i in attached_documents:
                         if os.path.splitext(i)[1] == '.spw':
                             if os.path.splitext(path)[0] == os.path.splitext(i)[0]:  # path == i без расширения
                                 self.main_tree[-1].bill_of_material = True
-                    print('Find .cdw')
+                    if not self.main_tree[-1].bill_of_material:
+                        if self.find_spw(document):
+                            documents_for_attach.append(self.find_spw(document))
+                            self.main_tree[-1].bill_of_material = True  # TODO проверить работоспособность этой строки
                     if self.find_cdw(document):
                         documents_for_attach.append(self.find_cdw(document))
                         self.main_tree[-1].drawing = True  # TODO проверить работоспособность этой строки
                         document.Save()
 
                 elif any(".cdw" in item for item in attached_documents) and not any(".spw" in item for item in attached_documents):
-                    print('cdw нашли')
                     for i in attached_documents:
                         if os.path.splitext(i)[1] == '.cdw':
                             if os.path.splitext(path)[0] + ' СБ' == os.path.splitext(i)[0]:  # path == i с добавлением 'СБ'
                                 self.main_tree[-1].drawing = True
-                    print('Find .spw')
+                    if not self.main_tree[-1].drawing:
+                        if self.find_cdw(document):
+                            documents_for_attach.append(self.find_cdw(document))
+                            self.main_tree[-1].drawing = True  # TODO проверить работоспособность этой строки
                     if self.find_spw(document):
                         documents_for_attach.append(self.find_spw(document))
                         self.main_tree[-1].bill_of_material = True  # TODO проверить работоспособность этой строки
@@ -110,7 +105,6 @@ class API:
                         if os.path.splitext(i)[1] == '.cdw':
                             if os.path.splitext(path)[0] + ' СБ' == os.path.splitext(i)[0]:  # path == i с добавлением 'СБ'
                                 self.main_tree[-1].drawing = True
-                print(documents_for_attach)
                 product_data_manager.SetObjectAttachedDocuments(property_keeper, documents_for_attach)
                 document.Save()
 
