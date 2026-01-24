@@ -21,6 +21,8 @@ class API:
 
     # принимает путь до файла в виде строки
     def open(self, path):
+        #TODO добавить открытие без проверок и исправлений
+
         # добавить проверку на поддерживаемые типы файлов
         if not os.path.exists(path):
             return False
@@ -37,10 +39,10 @@ class API:
             self.drawing_number = self.get_property_value('Обозначение')
             self.drawing_name = self.get_property_value('Наименование')
             attached_documents = self.check_attached_documents(document)
+            product_data_manager = self.api7.IProductDataManager(document)
+            property_keeper = self.api7.IPropertyKeeper(self.part_7)
             # открытие для детали
             if document.DocumentType == 4:
-                product_data_manager = self.api7.IProductDataManager(document)
-                property_keeper = self.api7.IPropertyKeeper(self.part_7)
                 if attached_documents is not None:
                     # проверка привязанных документов
                     for attached_document in attached_documents:
@@ -53,9 +55,45 @@ class API:
                         product_data_manager.SetObjectAttachedDocuments(property_keeper, self.find_cdw(document))
                         self.main_tree[-1].drawing = True #TODO проверить работоспособность этой строки
                         document.Save()
+
             # открытие для сборки
             else:
+                print(attached_documents)
+                if any(".spw" in item for item in attached_documents) and not any(".cdw" in item for item in attached_documents):
+
+                    print('spw нашли')
+                    for i in attached_documents:
+                        if os.path.splitext(i)[1] == '.spw':
+                            if os.path.splitext(path)[0] == os.path.splitext(i)[0]:  # path == i без расширения
+                                self.main_tree[-1].bill_of_material = True
+
+                    print('Find .cdw')
+                    if self.find_cdw(document):
+                        product_data_manager.SetObjectAttachedDocuments(property_keeper, self.find_cdw(document))
+                        self.main_tree[-1].drawing = True #TODO проверить работоспособность этой строки
+                        document.Save()
+
+                elif any(".cdw" in item for item in attached_documents) and not any(".spw" in item for item in attached_documents):
+
+                    print('cdw нашли')
+                    for i in attached_documents:
+                        if os.path.splitext(i)[1] == '.cdw':
+                            if os.path.splitext(path)[0] + ' СБ' == os.path.splitext(i)[0]:  # path == i с добавлением 'СБ'
+                                self.main_tree[-1].drawing = True
+
+                    print('Find .spw')
+                    if self.find_cdw(document):
+                        product_data_manager.SetObjectAttachedDocuments(property_keeper, self.find_cdw(document))
+                        self.main_tree[-1].drawing = True #TODO проверить работоспособность этой строки
+                        document.Save()
+
+                else:
+                    print('Пусто')
+                    print('Find .spw')
+                    print('Find .cdw')
+
                 if attached_documents is not None:
+                    print('Есть документы')
                     # обработка вложенных документов
                     for i in attached_documents:
                         if os.path.splitext(i)[1] == '.spw':
@@ -67,8 +105,12 @@ class API:
                                 self.main_tree[-1].drawing = True
                             #TODO добавить открытие чертежа и проверку, есть ли спецификация, если есть спецификация в чертеже, BOM = True
                 else:
+                    print('Нет документов')
+                    if self.find_cdw(document):
+                        product_data_manager.SetObjectAttachedDocuments(property_keeper, self.find_cdw(document))
+                        self.main_tree[-1].drawing = True #TODO проверить работоспособность этой строки
+                        document.Save()
                     self.find_spw(document)
-                    self.find_cdw(document)
         #TODO при открытии чертежа, проверить наличие спецификации на чертеже, проверить обозначение на соответствие имени файла
         #TODO при открытии спецификации, проверить на соответствие обозначения
 
@@ -141,8 +183,7 @@ class API:
             available_documents = []
             attached_documents = self.check_attached_documents(document)
             kompas_document_3d = self.api7.IKompasDocument3D(document)
-            self.part_7 = kompas_document_3d.TopPart
-            property_keeper = self.api7.IPropertyKeeper(self.part_7)
+            part_7 = kompas_document_3d.TopPart
             for path_to_document in attached_documents:
                 if os.path.exists(path_to_document):
                     available_documents.append(path_to_document)
@@ -158,8 +199,9 @@ class API:
                 if 'IPropertyKeeper' in str(product):
                     unique_meta_object_key = product.UniqueMetaObjectKey
                     product_data_manager.DeleteProductObject(unique_meta_object_key)
+
             # добавить вернуть документы в список
-            product_data_manager.SetObjectAttachedDocuments(self.part_7, available_documents)
+            product_data_manager.SetObjectAttachedDocuments(part_7, available_documents)
             return True
         else:
             return False
@@ -202,7 +244,11 @@ class API:
                 return document.Path + os.path.splitext(document.Name)[0] + '.cdw'
             return None
         elif(document.DocumentType == 5):
-            pass
+            print(document.Path + os.path.splitext(document.Name)[0] + ' СБ.cdw')
+            if os.path.exists(document.Path + os.path.splitext(document.Name)[0] + ' СБ.cdw'):
+                print('Нашли СБ')
+                return document.Path + os.path.splitext(document.Name)[0] + ' СБ.cdw'
+            return None
         else:
             return None
 
