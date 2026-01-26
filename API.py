@@ -129,7 +129,6 @@ class API:
         return False
 
     def add_to_main_tree(self, path):
-        #self.open(path)
         if os.path.splitext(path)[1] == '.m3d':
             self.main_tree.append(Part(self, id_number=len(self.main_tree)))
         elif os.path.splitext(path)[1] == '.a3d':
@@ -138,16 +137,6 @@ class API:
     def scan(self, path):
         queue_for_check_parts = []
         queue_for_check_assembles = []
-        # открыть сборку
-        # добавить в список
-
-        # если есть детали, открыть их поочередно и добавить в список с добавлением родителя изначальной сборки, но только если они небыли раньше обработаны
-        # закрыть детали после добавления
-        # посчитать количество подсборок (например 3)
-        # добавить подсборки в таблицу и занести их адрес в список на проверку
-        # закрыть основную сборку
-        # открыть сборку из списка и удалить адрес из этого же списка
-        # повторять пока список не будет пуст
 
         self.open(path)
 
@@ -164,10 +153,8 @@ class API:
         # удаление из списка повторяющихся файлов
         queue_for_check_parts = list(set(queue_for_check_parts))
         queue_for_check_assembles = list(set(queue_for_check_assembles))
-        #print(queue_for_check_parts)
-        #print(queue_for_check_assembles)
 
-        #self.assemble_documents_for_scan.extend(self.document)
+        # перебор всех сборок и деталей
         self.document.Close(1)
         for i in queue_for_check_parts:
             self.open(i)
@@ -232,7 +219,7 @@ class API:
             return None
         return documents_array
 
-    def find_pdf(self):
+    def find_pdf(self): #TODO написать функцию
         pass
 
     def find_spw(self, document):

@@ -2,7 +2,15 @@
 
 class Files:
     def __init__(self):
-        pass
+        self.all_objects = [] # все объекты
+        self.a3d_list = [] # документы сборки
+        self.m3d_list = []  # документы детали
+        self.cdw_list =[] # документы чертежей
+        self.spw_list = []  # документы спецификаций
+        self.pdf_list = [] # pdf документы
+
+    def add_file(self, file):
+        self.all_objects.extend(file)
 
 class File:
     def __init__(self, kompas, id_number):
