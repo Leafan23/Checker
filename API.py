@@ -21,16 +21,17 @@ class API:
 
     # принимает путь до файла в виде строки
     def open(self, path):
+        #TODO добавить открытие без проверок и исправлений
 
         # добавить проверку на поддерживаемые типы файлов
-        attached_documents = []
         if not os.path.exists(path):
             return False
-
         document = self.documents.Open(path, 1, 0)
         self.add_to_main_tree(path)
         self.document = document
         self.path = path
+
+        self.remove_unavailable_documents(document)
 
         if document.DocumentType == 4 or document.DocumentType == 5:
             kompas_document_3d = self.api7.IKompasDocument3D(document)
@@ -38,59 +39,75 @@ class API:
             self.drawing_number = self.get_property_value('Обозначение')
             self.drawing_name = self.get_property_value('Наименование')
             attached_documents = self.check_attached_documents(document)
+            product_data_manager = self.api7.IProductDataManager(document)
+            property_keeper = self.api7.IPropertyKeeper(self.part_7)
+            # открытие для детали
             if document.DocumentType == 4:
-                product_data_manager = self.api7.IProductDataManager(document)
-                property_keeper = self.api7.IPropertyKeeper(self.part_7)
                 if attached_documents is not None:
-                    documents_count = 0
                     # проверка привязанных документов
                     for attached_document in attached_documents:
+                        if os.path.splitext(path)[0] == os.path.splitext(attached_document)[0]: # path == i без расширения
+                            self.main_tree[-1].drawing = True
 
-                        # проверка на существование документа
-                        if os.path.exists(attached_document):
-                            if os.path.splitext(path)[0] == os.path.splitext(attached_document)[0]: # path == i без расширения
-                                self.main_tree[-1].drawing = True
-                        else:
-                            #TODO дописать удаление несуществующих документов
-                            attached_documents.remove(attached_document)
-                            print('Типо удален из документов', attached_document)
-                            product_objects = product_data_manager.ProductObjects(1)
-                            for product in product_objects:
-                                if 'IPropertyKeeper' in str(product):
-                                    unique_meta_object_key = [product.UniqueMetaObjectKey]
-                                    print(unique_meta_object_key)
-                                    #product_data_manager.DeleteProductObject(unique_meta_object_key)
-                            print('product_objects: ', product_objects)
-                            pass # тут надо удалить документ из привязанных
-                        documents_count += 1
-
-
+                # поиск и добавление чертежа в детали
                 else:
                     if self.find_cdw(document):
                         product_data_manager.SetObjectAttachedDocuments(property_keeper, self.find_cdw(document))
                         self.main_tree[-1].drawing = True #TODO проверить работоспособность этой строки
                         document.Save()
-            # для документа сборки
+
+            # открытие для сборки
             else:
+                documents_for_attach = []
                 if attached_documents is not None:
-                    # обработка вложенных документов
+                    documents_for_attach.extend(attached_documents)
+
+                if not attached_documents:
+                    # TODO добавить открытие чертежа и проверку, есть ли спецификация, если есть спецификация в чертеже, BOM = True
+                    if self.find_cdw(document):
+                        documents_for_attach.append(self.find_cdw(document))
+                        self.main_tree[-1].drawing = True  # TODO проверить работоспособность этой строки
+                    if self.find_spw(document):
+                        documents_for_attach.append(self.find_spw(document))
+                        self.main_tree[-1].bill_of_material = True  # TODO проверить работоспособность этой строки
+
+                elif any(".spw" in item for item in attached_documents) and not any(".cdw" in item for item in attached_documents):
                     for i in attached_documents:
-                        if os.path.exists(i):
-                            if os.path.splitext(i)[1] == '.spw':
-                                if os.path.splitext(path)[0] == os.path.splitext(i)[0]:  # path == i без расширения
-                                    self.main_tree[-1].bill_of_material = True
-                            elif os.path.splitext(i)[1] == '.cdw':
-                                print(os.path.splitext(path)[0], ' == ', os.path.splitext(i)[0]+' СБ')
-                                if os.path.splitext(path)[0]+' СБ' == os.path.splitext(i)[0]:  # path == i с добавлением 'СБ'
-                                    self.main_tree[-1].drawing = True
-                                #TODO добавить открытие чертежа и проверку, есть ли спецификация, если есть спецификация в чертеже, BOM = True
-                        else:
-                            print('Типо удален из документов', i)
-                            pass  # тут надо удалить документ из привязанных
-                    pass
+                        if os.path.splitext(i)[1] == '.spw':
+                            if os.path.splitext(path)[0] == os.path.splitext(i)[0]:  # path == i без расширения
+                                self.main_tree[-1].bill_of_material = True
+                    if not self.main_tree[-1].bill_of_material:
+                        if self.find_spw(document):
+                            documents_for_attach.append(self.find_spw(document))
+                            self.main_tree[-1].bill_of_material = True  # TODO проверить работоспособность этой строки
+                    if self.find_cdw(document):
+                        documents_for_attach.append(self.find_cdw(document))
+                        self.main_tree[-1].drawing = True  # TODO проверить работоспособность этой строки
+                        document.Save()
+
+                elif any(".cdw" in item for item in attached_documents) and not any(".spw" in item for item in attached_documents):
+                    for i in attached_documents:
+                        if os.path.splitext(i)[1] == '.cdw':
+                            if os.path.splitext(path)[0] + ' СБ' == os.path.splitext(i)[0]:  # path == i с добавлением 'СБ'
+                                self.main_tree[-1].drawing = True
+                    if not self.main_tree[-1].drawing:
+                        if self.find_cdw(document):
+                            documents_for_attach.append(self.find_cdw(document))
+                            self.main_tree[-1].drawing = True  # TODO проверить работоспособность этой строки
+                    if self.find_spw(document):
+                        documents_for_attach.append(self.find_spw(document))
+                        self.main_tree[-1].bill_of_material = True  # TODO проверить работоспособность этой строки
                 else:
-                    self.find_spw(document)
-                    self.find_cdw(document)
+                    for i in attached_documents:
+                        if os.path.splitext(i)[1] == '.spw':
+                            if os.path.splitext(path)[0] == os.path.splitext(i)[0]:  # path == i без расширения
+                                self.main_tree[-1].bill_of_material = True
+                        if os.path.splitext(i)[1] == '.cdw':
+                            if os.path.splitext(path)[0] + ' СБ' == os.path.splitext(i)[0]:  # path == i с добавлением 'СБ'
+                                self.main_tree[-1].drawing = True
+                product_data_manager.SetObjectAttachedDocuments(property_keeper, documents_for_attach)
+                document.Save()
+
         #TODO при открытии чертежа, проверить наличие спецификации на чертеже, проверить обозначение на соответствие имени файла
         #TODO при открытии спецификации, проверить на соответствие обозначения
 
@@ -157,6 +174,37 @@ class API:
         for i in queue_for_check_parts:
             self.open(i)
 
+    # костыль для удаления недействительных документов
+    def remove_unavailable_documents(self, document): #TODO переработать функцию на более оптимальную
+        if document.DocumentType == 4 or document.DocumentType == 5:
+            available_documents = []
+            attached_documents = self.check_attached_documents(document)
+            kompas_document_3d = self.api7.IKompasDocument3D(document)
+            part_7 = kompas_document_3d.TopPart
+            if attached_documents:
+                for path_to_document in attached_documents:
+                    if os.path.exists(path_to_document):
+                        available_documents.append(path_to_document)
+
+                # удалить все документы
+                product_data_manager = self.api7.IProductDataManager(document)
+                product_objects = []
+                if isinstance(product_data_manager.ProductObjects(1), tuple):
+                    product_objects += product_data_manager.ProductObjects(1)
+                else:
+                    product_objects.append(product_data_manager.ProductObjects(1))
+                for product in product_objects:
+                    if 'IPropertyKeeper' in str(product):
+                        unique_meta_object_key = product.UniqueMetaObjectKey
+                        product_data_manager.DeleteProductObject(unique_meta_object_key)
+
+                # добавить вернуть документы в список
+                product_data_manager.SetObjectAttachedDocuments(part_7, available_documents)
+            return True
+        else:
+            return False
+
+
     # Принимает на вход класс IKompasDocument.
     # Обрабатывает файл, и выдает все привязанные файлы в виде списка
     def check_attached_documents(self, document):
@@ -186,15 +234,20 @@ class API:
         pass
 
     def find_spw(self, document):
-        pass
+        if document.DocumentType == 5:
+            if os.path.exists(document.Path + os.path.splitext(document.Name)[0] + '.spw'):
+                return document.Path + os.path.splitext(document.Name)[0] + '.spw'
+        return None
 
     def find_cdw(self, document):
         if document.DocumentType == 4:
             if os.path.exists(document.Path + os.path.splitext(document.Name)[0] + '.cdw'):
                 return document.Path + os.path.splitext(document.Name)[0] + '.cdw'
             return None
-        elif(document.DocumentType == 5):
-            pass
+        elif document.DocumentType == 5:
+            if os.path.exists(document.Path + os.path.splitext(document.Name)[0] + ' СБ.cdw'):
+                return document.Path + os.path.splitext(document.Name)[0] + ' СБ.cdw'
+            return None
         else:
             return None
 
