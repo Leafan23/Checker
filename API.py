@@ -19,6 +19,8 @@ class API:
         self.part_7 = None
         self.model_objects = None
 
+        self.assemble_documents_for_scan = []
+
     # принимает путь до файла в виде строки
     def open(self, path):
         #TODO добавить открытие без проверок и исправлений
@@ -27,11 +29,12 @@ class API:
         if not os.path.exists(path):
             return False
         document = self.documents.Open(path, 1, 0)
-        self.add_to_main_tree(path)
+
         self.document = document
         self.path = path
 
         self.remove_unavailable_documents(document)
+        self.add_to_main_tree(path)
 
         if document.DocumentType == 4 or document.DocumentType == 5:
             kompas_document_3d = self.api7.IKompasDocument3D(document)
@@ -83,7 +86,6 @@ class API:
                     if self.find_cdw(document):
                         documents_for_attach.append(self.find_cdw(document))
                         self.main_tree[-1].drawing = True  # TODO проверить работоспособность этой строки
-                        document.Save()
 
                 elif any(".cdw" in item for item in attached_documents) and not any(".spw" in item for item in attached_documents):
                     for i in attached_documents:
@@ -105,6 +107,7 @@ class API:
                         if os.path.splitext(i)[1] == '.cdw':
                             if os.path.splitext(path)[0] + ' СБ' == os.path.splitext(i)[0]:  # path == i с добавлением 'СБ'
                                 self.main_tree[-1].drawing = True
+
                 product_data_manager.SetObjectAttachedDocuments(property_keeper, documents_for_attach)
                 document.Save()
 
@@ -152,14 +155,7 @@ class API:
 
         for i in feature_7.SubFeatures(0, True, False):
             if i.ModelObjectType == 104:
-                print(i.ModelObjectType)
-                print(i.Name)
                 part_7 = self.api7.IPart7(i)
-                print(part_7.FileName)
-                print('Это деталь? ', part_7.Detail)
-                print('Обозначение: ', part_7.Marking)
-                print('Количество вставок: ', part_7.InstanceCount)
-                print('-----------------------')
                 if part_7.Detail:
                     queue_for_check_parts.append(part_7.FileName)
                 else:
@@ -168,11 +164,17 @@ class API:
         # удаление из списка повторяющихся файлов
         queue_for_check_parts = list(set(queue_for_check_parts))
         queue_for_check_assembles = list(set(queue_for_check_assembles))
-        print(queue_for_check_parts)
-        print(queue_for_check_assembles)
+        #print(queue_for_check_parts)
+        #print(queue_for_check_assembles)
 
+        #self.assemble_documents_for_scan.extend(self.document)
+        self.document.Close(1)
         for i in queue_for_check_parts:
             self.open(i)
+            self.document.Close(1)
+        for i in queue_for_check_assembles:
+            self.scan(i)
+
 
     # костыль для удаления недействительных документов
     def remove_unavailable_documents(self, document): #TODO переработать функцию на более оптимальную
