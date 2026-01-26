@@ -1,23 +1,45 @@
-
+import os
 
 class Files:
     def __init__(self):
         self.all_objects = [] # все объекты
         self.a3d_list = [] # документы сборки
         self.m3d_list = []  # документы детали
-        self.cdw_list =[] # документы чертежей
+        self.cdw_list = [] # документы чертежей
         self.spw_list = []  # документы спецификаций
         self.pdf_list = [] # pdf документы
 
+        self._id_count = 0
+
     def add_file(self, file):
+        self._id_count += 1
+        file.id = self._id_count
+
         self.all_objects.extend(file)
 
+    def id_return(self, id: int):
+        for i in self.all_objects:
+            if i.id == id: return i
+        return None
+
+    def last_added(self):
+        return self.all_objects[-1].id
+
 class File:
-    def __init__(self, kompas, id_number):
+    def __init__(self, kompas, id_number=0):
         self.kompas = kompas
         self.id = id_number
         self.path = kompas.path
         self.type = 0
+        self.child = []
+        self.parent = None
+
+    def add_child(self, child: list[int] | int) -> None:
+        if isinstance(child, list):
+            self.child.extend(child)
+        else:
+            self.child.append(child)
+        #TODO дописать удаление повторений
 
 
 class Pdf(File):
@@ -30,7 +52,6 @@ class Part(File):
     def __init__(self, kompas, id_number):
         super().__init__(kompas, id_number)
         self.type = 2
-        self.parent = None
         self.drawing = False # чертеж присутствует - True; чертеж отсутствует - False
         self.drawing_number = kompas.drawing_number
         self.drawing_name = kompas.drawing_name

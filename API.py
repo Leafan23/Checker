@@ -1,5 +1,5 @@
 from win32com.client import gencache, Dispatch
-from Classes import File, Part, Pdf, Assemble
+from Classes import File, Part, Pdf, Assemble, Files
 import os
 
 
@@ -10,6 +10,7 @@ class API:
         self.application.Visible = True
 
         self.main_tree: list[File] = []
+        self.files = Files()
 
         self.documents = self.application.Documents
         self.path = ''
@@ -35,6 +36,8 @@ class API:
 
         self.remove_unavailable_documents(document)
         self.add_to_main_tree(path)
+        self.files.add_file(path)
+        parent_id = self.files.last_added()
 
         if document.DocumentType == 4 or document.DocumentType == 5:
             kompas_document_3d = self.api7.IKompasDocument3D(document)
@@ -44,6 +47,17 @@ class API:
             attached_documents = self.check_attached_documents(document)
             product_data_manager = self.api7.IProductDataManager(document)
             property_keeper = self.api7.IPropertyKeeper(self.part_7)
+
+            # добавление в структуру Files
+            if document.DocumentType == 4:
+                if attached_documents is not None:
+                    # проверка привязанных документов
+                    for attached_document in attached_documents:
+                        if os.path.splitext(path)[0] == os.path.splitext(attached_document)[0]: # path == i без расширения
+                            self.files.add_file(attached_document)
+                            self.files.last_added().parent = parent_id
+                            self.files.id_return(self.files.last_added().id)
+
             # открытие для детали
             if document.DocumentType == 4:
                 if attached_documents is not None:
