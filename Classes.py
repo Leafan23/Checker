@@ -1,4 +1,6 @@
 import os
+from typing import Any
+
 
 class Files:
     def __init__(self):
@@ -13,9 +15,10 @@ class Files:
 
     def add_file(self, file):
         self._id_count += 1
-        file.id = self._id_count
+        file_object = File(file)
+        file_object.id = self._id_count
 
-        self.all_objects.extend(file)
+        self.all_objects.append(file_object)
 
     def id_return(self, id: int):
         for i in self.all_objects:
@@ -23,13 +26,20 @@ class Files:
         return None
 
     def last_added(self):
-        return self.all_objects[-1].id
+        return self.all_objects[-1]
+
+    def print_all_data(self):
+        for i in self.all_objects:
+            print('id: ', i.id, '   path: ',i.path, '   parent: ',i.parent, '   child: ',i.child)
 
 class File:
-    def __init__(self, kompas, id_number=0):
+    def __init__(self, kompas: str | Any, id=0):
         self.kompas = kompas
-        self.id = id_number
-        self.path = kompas.path
+        self.id = None
+        if isinstance(kompas, str):
+            self.path = kompas
+        else:
+            self.path = kompas.path
         self.type = 0
         self.child = []
         self.parent = None

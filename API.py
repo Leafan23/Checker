@@ -2,6 +2,7 @@ from win32com.client import gencache, Dispatch
 from Classes import File, Part, Pdf, Assemble, Files
 import os
 
+#TODO добавить обработчик отсутствующих файлов сборки
 
 class API:
     def __init__(self):
@@ -23,7 +24,7 @@ class API:
         self.assemble_documents_for_scan = []
 
     # принимает путь до файла в виде строки
-    def open(self, path):
+    def open(self, path, parent=None):
         #TODO добавить открытие без проверок и исправлений
 
         # добавить проверку на поддерживаемые типы файлов
@@ -37,7 +38,11 @@ class API:
         self.remove_unavailable_documents(document)
         self.add_to_main_tree(path)
         self.files.add_file(path)
-        parent_id = self.files.last_added()
+        self.files.last_added().parent = parent
+        parent_for_documents = self.files.last_added().id
+
+        parent_id = self.files.last_added().id
+
 
         if document.DocumentType == 4 or document.DocumentType == 5:
             kompas_document_3d = self.api7.IKompasDocument3D(document)
@@ -55,8 +60,8 @@ class API:
                     for attached_document in attached_documents:
                         if os.path.splitext(path)[0] == os.path.splitext(attached_document)[0]: # path == i без расширения
                             self.files.add_file(attached_document)
-                            self.files.last_added().parent = parent_id
-                            self.files.id_return(self.files.last_added().id)
+                            self.files.last_added().parent = parent_for_documents
+                            self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
 
             # открытие для детали
             if document.DocumentType == 4:
@@ -129,7 +134,7 @@ class API:
         #TODO при открытии спецификации, проверить на соответствие обозначения
 
         #document.Close(1) #TODO раскоментить при сборке в exe
-        return True
+        return parent_id
 
     def get_property_value(self, property_name):
         property_mng = self.api7.IPropertyMng(self.application)
@@ -148,33 +153,35 @@ class API:
         elif os.path.splitext(path)[1] == '.a3d':
             self.main_tree.append(Assemble(self, id_number=len(self.main_tree)))
 
-    def scan(self, path):
+    def scan(self, path, parent=None):
         queue_for_check_parts = []
-        queue_for_check_assembles = []
 
-        self.open(path)
+        parent = self.open(path, parent)
 
         feature_7 = self.api7.IFeature7(self.part_7)
 
+        # получение списков для перебора
         for i in feature_7.SubFeatures(0, True, False):
             if i.ModelObjectType == 104:
                 part_7 = self.api7.IPart7(i)
                 if part_7.Detail:
                     queue_for_check_parts.append(part_7.FileName)
                 else:
-                    queue_for_check_assembles.append(part_7.FileName)
+                    self.assemble_documents_for_scan.append(part_7.FileName)
 
         # удаление из списка повторяющихся файлов
         queue_for_check_parts = list(set(queue_for_check_parts))
-        queue_for_check_assembles = list(set(queue_for_check_assembles))
+        self.assemble_documents_for_scan = list(set(self.assemble_documents_for_scan))
 
         # перебор всех сборок и деталей
         self.document.Close(1)
         for i in queue_for_check_parts:
-            self.open(i)
+            self.open(i, parent)
             self.document.Close(1)
-        for i in queue_for_check_assembles:
-            self.scan(i)
+        for i in self.assemble_documents_for_scan:
+            if self.assemble_documents_for_scan != []:
+                self.assemble_documents_for_scan.pop(0)
+            self.scan(i, parent)
 
 
     # костыль для удаления недействительных документов

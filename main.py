@@ -14,11 +14,13 @@ if __name__ == '__main__':
     kompasAPI.scan(r"C:\Users\Leafan\PycharmProjects\Checker\kompas_files\ГКЮШ.ТЕСТ.00.000.a3d")
     #kompasAPI.open(r"D:\Projects\Checker\Kompas_files\ГКЮШ.ТЕСТ.00.000.a3d")
     #print(kompasAPI.main_tree[0].path)
-    for i in kompasAPI.main_tree:
+    '''for i in kompasAPI.main_tree:
         print('Drawing: ', i.drawing, i.path)
         try:
             print('BOM: ', i.bill_of_material, i.path)
         except:
             pass
-        print('-----------------------')
+        print('-----------------------')'''
+
+    kompasAPI.files.print_all_data()
     #TODO полное закрытие приложения, если работало в скрытом режиме
