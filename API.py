@@ -21,7 +21,7 @@ class API:
         self.part_7 = None
         self.model_objects = None
 
-        self.assemble_documents_for_scan = []
+        self.assemble_documents_for_scan: list[Assemble_in_queue] = []
 
     # принимает путь до файла в виде строки
     def open(self, path, parent=None):
@@ -153,35 +153,47 @@ class API:
         elif os.path.splitext(path)[1] == '.a3d':
             self.main_tree.append(Assemble(self, id_number=len(self.main_tree)))
 
-    def scan(self, path, parent=None):
+    def scan(self, path=None):
         queue_for_check_parts = []
+        queue_for_check_assembles = []
+        flag = False
 
-        parent = self.open(path, parent)
-
-        feature_7 = self.api7.IFeature7(self.part_7)
+        # перебор отсканированного списка
+        if path is None:
+            for i in self.assemble_documents_for_scan:
+                if i.count_of_path == 0: continue
+                parent = i.id_of_master
+                path = i.next_path()
+                self.open(path)
+                if i.count_of_path > 0: break
+            else:
+                flag = True
+        else:
+            parent = self.open(path)
 
         # получение списков для перебора
+        feature_7 = self.api7.IFeature7(self.part_7)
         for i in feature_7.SubFeatures(0, True, False):
             if i.ModelObjectType == 104:
                 part_7 = self.api7.IPart7(i)
                 if part_7.Detail:
                     queue_for_check_parts.append(part_7.FileName)
                 else:
-                    self.assemble_documents_for_scan.append(part_7.FileName)
+                    queue_for_check_assembles.append(part_7.FileName)
 
         # удаление из списка повторяющихся файлов
         queue_for_check_parts = list(set(queue_for_check_parts))
-        self.assemble_documents_for_scan = list(set(self.assemble_documents_for_scan))
+        queue_for_check_assembles = list(set(queue_for_check_assembles))
+
+        self.assemble_documents_for_scan.append(Assemble_in_queue(parent, queue_for_check_assembles))
 
         # перебор всех сборок и деталей
         self.document.Close(1)
         for i in queue_for_check_parts:
             self.open(i, parent)
             self.document.Close(1)
-        for i in self.assemble_documents_for_scan:
-            if self.assemble_documents_for_scan != []:
-                self.assemble_documents_for_scan.pop(0)
-            self.scan(i, parent)
+        if flag: return
+        self.scan()
 
 
     # костыль для удаления недействительных документов
@@ -268,9 +280,12 @@ class Assemble_in_queue:
         self.count_of_path = len(self.child_path)
 
     def next_path(self) -> str | None:
-        self.count_of_path -= 1
-        if self.count_of_path >= 0:
-            return self.child_path[len(self.child_path) - self.count_of_path + 1]
+        print('self.child_path: ', self.child_path)
+        print(self.count_of_path)
+        if self.count_of_path > 0:
+            self.count_of_path -= 1
+            print(len(self.child_path), '-', self.count_of_path, 'Итог: ', len(self.child_path) - (self.count_of_path+1))
+            return self.child_path[len(self.child_path) - (self.count_of_path+1)]
         else:
             return None
 
