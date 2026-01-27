@@ -261,7 +261,18 @@ class API:
         else:
             return None
 
+class Assemble_in_queue:
+    def __init__(self, id: int, child_path: list[str]):
+        self.child_path = child_path
+        self.id_of_master = id
+        self.count_of_path = len(self.child_path)
 
+    def next_path(self) -> str | None:
+        self.count_of_path -= 1
+        if self.count_of_path >= 0:
+            return self.child_path[len(self.child_path) - self.count_of_path + 1]
+        else:
+            return None
 
 
 if __name__ == '__main__':
