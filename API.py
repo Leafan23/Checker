@@ -154,27 +154,26 @@ class API:
             self.main_tree.append(Assemble(self, id_number=len(self.main_tree)))
 
     def scan(self, path=None):
+        global parent
         queue_for_check_parts = []
         queue_for_check_assembles = []
-        flag = False
+
 
         # перебор отсканированного списка
         if path is None:
             for i in self.assemble_documents_for_scan:
                 if i.count_of_path == 0: continue
-                #parent = i.id_of_master
                 path = i.next_path()
-                parent = self.open(path, i.id_of_master)
-                print(i.child_path)
-                print(self.assemble_documents_for_scan)
-                if i.count_of_path > 0: break
+                if path != None: parent = self.open(path, i.id_of_master)
+                break
             else:
-                flag = True
-
+                return None
         else:
             parent = self.open(path)
 
+
         # получение списков для перебора
+
         feature_7 = self.api7.IFeature7(self.part_7)
         for i in feature_7.SubFeatures(0, True, False):
             if i.ModelObjectType == 104:
@@ -192,11 +191,11 @@ class API:
 
         # перебор всех сборок и деталей
         self.document.Close(1)
+        print("документ сборки закрыт ", path)
         for i in queue_for_check_parts:
             self.open(i, parent)
             self.document.Close(1)
-        if flag: return
-        self.scan()
+        return self.scan()
 
 
     # костыль для удаления недействительных документов
@@ -281,11 +280,14 @@ class Assemble_in_queue:
         self.child_path = child_path
         self.id_of_master = id
         self.count_of_path = len(self.child_path)
+        self.list_fo_return = self.child_path
 
     def next_path(self) -> str | None:
-        if self.count_of_path > 0:
+        if len(self.list_fo_return) > 0:
             self.count_of_path -= 1
-            return self.child_path[len(self.child_path) - (self.count_of_path+1)]
+            print(self.child_path[len(self.child_path) - (self.count_of_path+1)])
+            print(self.list_fo_return[0])
+            return self.list_fo_return.pop(0)
         else:
             return None
 

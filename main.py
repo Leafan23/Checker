@@ -12,6 +12,7 @@ if __name__ == '__main__':
     #попросить компас вернуть текущий документ
     kompasAPI = API.API()
     kompasAPI.scan(r"C:\Users\Leafan\PycharmProjects\Checker\kompas_files\ГКЮШ.ТЕСТ.00.000.a3d")
+    print(kompasAPI.assemble_documents_for_scan)
     #kompasAPI.open(r"D:\Projects\Checker\Kompas_files\ГКЮШ.ТЕСТ.00.000.a3d")
     #print(kompasAPI.main_tree[0].path)
     '''for i in kompasAPI.main_tree:
