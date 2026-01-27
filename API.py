@@ -41,7 +41,7 @@ class API:
         self.files.last_added().parent = parent
         parent_for_documents = self.files.last_added().id
 
-        parent_id = self.files.last_added().id
+        #parent_id = self.files.last_added().id
 
 
         if document.DocumentType == 4 or document.DocumentType == 5:
@@ -134,7 +134,7 @@ class API:
         #TODO при открытии спецификации, проверить на соответствие обозначения
 
         #document.Close(1) #TODO раскоментить при сборке в exe
-        return parent_id
+        return parent_for_documents
 
     def get_property_value(self, property_name):
         property_mng = self.api7.IPropertyMng(self.application)
@@ -162,12 +162,15 @@ class API:
         if path is None:
             for i in self.assemble_documents_for_scan:
                 if i.count_of_path == 0: continue
-                parent = i.id_of_master
+                #parent = i.id_of_master
                 path = i.next_path()
-                self.open(path)
+                parent = self.open(path, i.id_of_master)
+                print(i.child_path)
+                print(self.assemble_documents_for_scan)
                 if i.count_of_path > 0: break
             else:
                 flag = True
+
         else:
             parent = self.open(path)
 
@@ -280,11 +283,8 @@ class Assemble_in_queue:
         self.count_of_path = len(self.child_path)
 
     def next_path(self) -> str | None:
-        print('self.child_path: ', self.child_path)
-        print(self.count_of_path)
         if self.count_of_path > 0:
             self.count_of_path -= 1
-            print(len(self.child_path), '-', self.count_of_path, 'Итог: ', len(self.child_path) - (self.count_of_path+1))
             return self.child_path[len(self.child_path) - (self.count_of_path+1)]
         else:
             return None
