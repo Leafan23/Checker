@@ -173,7 +173,6 @@ class API:
 
 
         # получение списков для перебора
-
         feature_7 = self.api7.IFeature7(self.part_7)
         for i in feature_7.SubFeatures(0, True, False):
             if i.ModelObjectType == 104:
