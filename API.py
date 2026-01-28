@@ -10,7 +10,6 @@ class API:
         self.application = Dispatch("KOMPAS.Application.7")
         self.application.Visible = True
 
-        self.main_tree: list[File] = [] # Delete
         self.files = Files()
 
         self.documents = self.application.Documents
@@ -67,6 +66,8 @@ class API:
 
             if document.DocumentType == 5:
                 documents_for_attach = []
+                for i in attached_documents:
+                    documents_for_attach.append(i)
                 spw = self.find_spw(document)
                 cdw = self.find_cdw(document)
 
@@ -100,12 +101,6 @@ class API:
                 property_value = property_keeper.GetPropertyValue(property, "", True, True)
                 return property_value[1]
         return False
-
-    def add_to_main_tree(self, path):
-        if os.path.splitext(path)[1] == '.m3d':
-            self.main_tree.append(Part(self, id_number=len(self.main_tree)))
-        elif os.path.splitext(path)[1] == '.a3d':
-            self.main_tree.append(Assemble(self, id_number=len(self.main_tree)))
 
     def scan(self, path=None): #TODO сделать обработку исполнений, пока работает только файлами
         global parent
