@@ -10,7 +10,7 @@ class API:
         self.application = Dispatch("KOMPAS.Application.7")
         self.application.Visible = True
 
-        self.main_tree: list[File] = []
+        self.main_tree: list[File] = [] # Delete
         self.files = Files()
 
         self.documents = self.application.Documents
@@ -24,7 +24,7 @@ class API:
         self.assemble_documents_for_scan: list[Assemble_in_queue] = []
 
     # принимает путь до файла в виде строки
-    def open(self, path, parent=None):
+    def open(self, path: str, parent_id: int=None) -> int:
         #TODO добавить открытие без проверок и исправлений
 
         # добавить проверку на поддерживаемые типы файлов
@@ -36,13 +36,9 @@ class API:
         self.path = path
 
         self.remove_unavailable_documents(document)
-        self.add_to_main_tree(path)
         self.files.add_file(path)
-        self.files.last_added().parent = parent
+        self.files.last_added().parent = parent_id
         parent_for_documents = self.files.last_added().id
-
-        #parent_id = self.files.last_added().id
-
 
         if document.DocumentType == 4 or document.DocumentType == 5:
             kompas_document_3d = self.api7.IKompasDocument3D(document)
@@ -62,78 +58,36 @@ class API:
                             self.files.add_file(attached_document)
                             self.files.last_added().parent = parent_for_documents
                             self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
-
-            # открытие для детали
-            if document.DocumentType == 4:
-                if attached_documents is not None:
-                    # проверка привязанных документов
-                    for attached_document in attached_documents:
-                        if os.path.splitext(path)[0] == os.path.splitext(attached_document)[0]: # path == i без расширения
-                            self.main_tree[-1].drawing = True
-
-                # поиск и добавление чертежа в детали
-                else:
+                else: # поиск чертежа
                     if self.find_cdw(document):
+                        self.files.add_file(self.find_cdw(document))
+                        self.files.last_added().parent = parent_for_documents
+                        self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
                         product_data_manager.SetObjectAttachedDocuments(property_keeper, self.find_cdw(document))
-                        self.main_tree[-1].drawing = True #TODO проверить работоспособность этой строки
-                        document.Save()
 
-            # открытие для сборки
-            else:
+            if document.DocumentType == 5:
                 documents_for_attach = []
-                if attached_documents is not None:
-                    documents_for_attach.extend(attached_documents)
+                spw = self.find_spw(document)
+                cdw = self.find_cdw(document)
 
-                if not attached_documents:
-                    # TODO добавить открытие чертежа и проверку, есть ли спецификация, если есть спецификация в чертеже, BOM = True
-                    if self.find_cdw(document):
-                        documents_for_attach.append(self.find_cdw(document))
-                        self.main_tree[-1].drawing = True  # TODO проверить работоспособность этой строки
-                    if self.find_spw(document):
-                        documents_for_attach.append(self.find_spw(document))
-                        self.main_tree[-1].bill_of_material = True  # TODO проверить работоспособность этой строки
-
-                elif any(".spw" in item for item in attached_documents) and not any(".cdw" in item for item in attached_documents):
-                    for i in attached_documents:
-                        if os.path.splitext(i)[1] == '.spw':
-                            if os.path.splitext(path)[0] == os.path.splitext(i)[0]:  # path == i без расширения
-                                self.main_tree[-1].bill_of_material = True
-                    if not self.main_tree[-1].bill_of_material:
-                        if self.find_spw(document):
-                            documents_for_attach.append(self.find_spw(document))
-                            self.main_tree[-1].bill_of_material = True  # TODO проверить работоспособность этой строки
-                    if self.find_cdw(document):
-                        documents_for_attach.append(self.find_cdw(document))
-                        self.main_tree[-1].drawing = True  # TODO проверить работоспособность этой строки
-
-                elif any(".cdw" in item for item in attached_documents) and not any(".spw" in item for item in attached_documents):
-                    for i in attached_documents:
-                        if os.path.splitext(i)[1] == '.cdw':
-                            if os.path.splitext(path)[0] + ' СБ' == os.path.splitext(i)[0]:  # path == i с добавлением 'СБ'
-                                self.main_tree[-1].drawing = True
-                    if not self.main_tree[-1].drawing:
-                        if self.find_cdw(document):
-                            documents_for_attach.append(self.find_cdw(document))
-                            self.main_tree[-1].drawing = True  # TODO проверить работоспособность этой строки
-                    if self.find_spw(document):
-                        documents_for_attach.append(self.find_spw(document))
-                        self.main_tree[-1].bill_of_material = True  # TODO проверить работоспособность этой строки
-                else:
-                    for i in attached_documents:
-                        if os.path.splitext(i)[1] == '.spw':
-                            if os.path.splitext(path)[0] == os.path.splitext(i)[0]:  # path == i без расширения
-                                self.main_tree[-1].bill_of_material = True
-                        if os.path.splitext(i)[1] == '.cdw':
-                            if os.path.splitext(path)[0] + ' СБ' == os.path.splitext(i)[0]:  # path == i с добавлением 'СБ'
-                                self.main_tree[-1].drawing = True
+                if spw:
+                    self.files.add_file(spw)
+                    self.files.last_added().parent = parent_for_documents
+                    self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
+                    documents_for_attach.append(spw)
+                if cdw:
+                    self.files.add_file(cdw)
+                    self.files.last_added().parent = parent_for_documents
+                    self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
+                    documents_for_attach.append(cdw)
 
                 product_data_manager.SetObjectAttachedDocuments(property_keeper, documents_for_attach)
-                document.Save()
 
+        #TODO при открытии чертежа или спецификации проверить соответствие обозначению в файле и в основной надписи
         #TODO при открытии чертежа, проверить наличие спецификации на чертеже, проверить обозначение на соответствие имени файла
         #TODO при открытии спецификации, проверить на соответствие обозначения
 
-        #document.Close(1) #TODO раскоментить при сборке в exe
+        document.Save()
         return parent_for_documents
 
     def get_property_value(self, property_name):
@@ -153,11 +107,10 @@ class API:
         elif os.path.splitext(path)[1] == '.a3d':
             self.main_tree.append(Assemble(self, id_number=len(self.main_tree)))
 
-    def scan(self, path=None):
+    def scan(self, path=None): #TODO сделать обработку исполнений, пока работает только файлами
         global parent
         queue_for_check_parts = []
         queue_for_check_assembles = []
-
 
         # перебор отсканированного списка
         if path is None:
@@ -167,10 +120,9 @@ class API:
                 if path != None: parent = self.open(path, i.id_of_master)
                 break
             else:
-                return None
+                return
         else:
             parent = self.open(path)
-
 
         # получение списков для перебора
         feature_7 = self.api7.IFeature7(self.part_7)
@@ -186,15 +138,15 @@ class API:
         queue_for_check_parts = list(set(queue_for_check_parts))
         queue_for_check_assembles = list(set(queue_for_check_assembles))
 
+        # добавление файла в список
         self.assemble_documents_for_scan.append(Assemble_in_queue(parent, queue_for_check_assembles))
 
         # перебор всех сборок и деталей
         self.document.Close(1)
-        print("документ сборки закрыт ", path)
         for i in queue_for_check_parts:
             self.open(i, parent)
             self.document.Close(1)
-        return self.scan()
+        self.scan()
 
 
     # костыль для удаления недействительных документов
@@ -262,7 +214,12 @@ class API:
                 return document.Path + os.path.splitext(document.Name)[0] + '.spw'
         return None
 
-    def find_cdw(self, document):
+    def find_cdw(self, document) -> str | None:
+        """
+        Функция ищет чертеж с форматом cdw.
+        Принимает: IKompasDocument
+        Возвращает: путь до файла или None
+        """
         if document.DocumentType == 4:
             if os.path.exists(document.Path + os.path.splitext(document.Name)[0] + '.cdw'):
                 return document.Path + os.path.splitext(document.Name)[0] + '.cdw'
@@ -284,8 +241,6 @@ class Assemble_in_queue:
     def next_path(self) -> str | None:
         if len(self.list_fo_return) > 0:
             self.count_of_path -= 1
-            print(self.child_path[len(self.child_path) - (self.count_of_path+1)])
-            print(self.list_fo_return[0])
             return self.list_fo_return.pop(0)
         else:
             return None
