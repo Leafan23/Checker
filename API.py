@@ -66,8 +66,9 @@ class API:
 
             if document.DocumentType == 5:
                 documents_for_attach = []
-                for i in attached_documents:
-                    documents_for_attach.append(i)
+                if attached_documents is not None:
+                    for i in attached_documents:
+                        documents_for_attach.append(i)
                 spw = self.find_spw(document)
                 cdw = self.find_cdw(document)
 
@@ -222,6 +223,7 @@ class API:
         elif document.DocumentType == 5:
             if os.path.exists(document.Path + os.path.splitext(document.Name)[0] + ' СБ.cdw'):
                 return document.Path + os.path.splitext(document.Name)[0] + ' СБ.cdw'
+            #TODO Дописать возврат нескольких значений и исправить обработку функций в программе
             return None
         else:
             return None
