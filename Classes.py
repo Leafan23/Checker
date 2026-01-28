@@ -98,5 +98,5 @@ class Files:
     def print_all_data(self):
         for i in self.all_objects:
             print('id: ', i.id, '   path: ',i.path, '   parent: ',i.parent, '   child: ',i.child)
-            if isinstance(i, Part): print('   drawing: ', i.drawing)
-            if isinstance(i, Assemble): print('   drawing: ', i.drawing,'   BOM: ',i.bill_of_material)
+            if type(i) is Part: print('   drawing: ', i.drawing)
+            if type(i) is Assemble: print('   drawing: ', i.drawing,'   BOM: ',i.bill_of_material)
