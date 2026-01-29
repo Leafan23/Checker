@@ -1,6 +1,6 @@
 from win32com.client import gencache, Dispatch
 from Classes import File, Part, Pdf, Assemble, Files
-from typing import Self, Any
+from typing import Any
 import os
 
 #TODO добавить обработчик отсутствующих файлов сборки
