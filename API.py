@@ -1,6 +1,6 @@
 from win32com.client import gencache, Dispatch
 from Classes import File, Part, Pdf, Assemble, Files
-from typing import Self
+from typing import Self, Any
 import os
 
 #TODO добавить обработчик отсутствующих файлов сборки
@@ -24,7 +24,7 @@ class API:
         self.assemble_documents_for_scan: list[Assemble_in_queue] = []
 
     # принимает путь до файла в виде строки
-    def open(self, path: str, parent_id: int=None) -> int:
+    def open(self, path: str, parent_id: int=None) -> bool | Any:
         #TODO добавить открытие без проверок и исправлений
 
         # добавить проверку на поддерживаемые типы файлов
@@ -45,7 +45,7 @@ class API:
             self.drawing_number = self.get_property_value('Обозначение')
             self.drawing_name = self.get_property_value('Наименование')
 
-            self.files.add_file(path, self)
+            self.files.add_file(path)
             self.files.last_added().parent = parent_id
             parent_for_documents = self.files.last_added().id
 
@@ -59,12 +59,12 @@ class API:
                     # проверка привязанных документов
                     for attached_document in attached_documents:
                         if os.path.splitext(path)[0] == os.path.splitext(attached_document)[0]: # path == i без расширения
-                            self.files.add_file(attached_document, self)
+                            self.files.add_file(attached_document)
                             self.files.last_added().parent = parent_for_documents
                             self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
                 else: # поиск чертежа
                     if self.find_cdw(document):
-                        self.files.add_file(self.find_cdw(document),self)
+                        self.files.add_file(self.find_cdw(document))
                         self.files.last_added().parent = parent_for_documents
                         self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
                         product_data_manager.SetObjectAttachedDocuments(property_keeper, self.find_cdw(document))
@@ -78,12 +78,12 @@ class API:
                 cdw = self.find_cdw(document)
 
                 if spw:
-                    self.files.add_file(spw,self)
+                    self.files.add_file(spw)
                     self.files.last_added().parent = parent_for_documents
                     self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
                     documents_for_attach.append(spw)
                 if cdw:
-                    self.files.add_file(cdw, self)
+                    self.files.add_file(cdw)
                     self.files.last_added().parent = parent_for_documents
                     self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
                     documents_for_attach.append(cdw)
@@ -96,6 +96,7 @@ class API:
 
             document.Save()
             return parent_for_documents
+        return True
 
     def get_property_value(self, property_name):
         property_mng = self.api7.IPropertyMng(self.application)
