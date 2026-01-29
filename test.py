@@ -1,5 +1,5 @@
-import Classes
+#import Classes
 
-i = 0
-i -= 1
-print(i)
+i = ['1', '123', '23']
+j = ['5', '40', '50']
+print(i+j)

@@ -1,6 +1,8 @@
 import os
 from typing import Any, Self
 
+import API
+
 
 class File:
     def __init__(self, kompas: str | Any):
@@ -13,6 +15,7 @@ class File:
         self.type = 0
         self.child = []
         self.parent = None
+        self.part_number = ''
 
     def add_child(self, child: list[int] | int) -> None:
         if isinstance(child, list):
@@ -44,14 +47,28 @@ class Assemble(Part):
         self.bill_of_material = False # спецификация присутствует - True; спецификация отсутствует - False
 
 
-class Drawing(File):
+class Text_file(File):
+    def __init__(self, kompas):
+        super().__init__(kompas)
+        self.type = 6
+
+
+class Drawing(Text_file):
     def __init__(self, kompas):
         super().__init__(kompas)
         self.type = 4
 
 
+class Bill_of_material(Text_file):
+    def __init__(self, kompas):
+        super().__init__(kompas)
+        self.type = 5
+
+
 class Files:
-    def __init__(self):
+    def __init__(self, kompas: API):
+        self.kompas_API = kompas
+
         self.all_objects = [] # все объекты
         self.a3d_list = [] # документы сборки
         self.m3d_list = []  # документы детали
@@ -61,12 +78,17 @@ class Files:
 
         self._id_count = 0
 
-    def add_file(self, file: str): #TODO дописать для заполнения всех элементов
+    def add_file(self, file: str, kompas: API): #TODO дописать для заполнения всех элементов
         """Принимает строку со ссылкой на файл"""
         self._id_count += 1
-        if os.path.splitext(file)[1] == '.a3d': file_object = Assemble(file)
-        elif os.path.splitext(file)[1] == '.m3d': file_object = Part(file)
-        elif os.path.splitext(file)[1] == '.cdw': file_object = Drawing(file)
+        if os.path.splitext(file)[1] == '.a3d':
+            file_object = Assemble(file)
+            file_object.part_number = kompas.drawing_number
+        elif os.path.splitext(file)[1] == '.m3d':
+            file_object = Part(file)
+            file_object.part_number = kompas.drawing_number
+        elif os.path.splitext(file)[1] == '.cdw':
+            file_object = Drawing(file)
         else: file_object = File(file)
         file_object.id = self._id_count
 
@@ -74,6 +96,13 @@ class Files:
         if file_object.type == 2: self.m3d_list.append(file_object)
         elif file_object.type == 3: self.a3d_list.append(file_object)
         elif file_object.type == 4: self.cdw_list.append(file_object)
+
+    def scan_text_files(self):
+        text_documents_list = self.cdw_list + self.spw_list
+        for i in text_documents_list:
+            self.kompas_API.open(i.path)
+            self.kompas_API.document.Close(1)
+            print('Я пооткрывал текстовый документ')
 
     def find_missing_drawing(self): #TODO Переписать под изменения
         list_to_check = []
@@ -97,6 +126,6 @@ class Files:
 
     def print_all_data(self):
         for i in self.all_objects:
-            print('id: ', i.id, '   path: ',i.path, '   parent: ',i.parent, '   child: ',i.child)
+            print('id: ', i.id, '   path: ',i.path, '   parent: ',i.parent, '   child: ',i.child, 'Drawing number: ', i.part_number)
             if type(i) is Part: print('   drawing: ', i.drawing)
             if type(i) is Assemble: print('   drawing: ', i.drawing,'   BOM: ',i.bill_of_material)

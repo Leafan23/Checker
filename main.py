@@ -12,5 +12,6 @@ if __name__ == '__main__':
     kompasAPI = API.API()
     kompasAPI.scan(r"C:\Users\Leafan\PycharmProjects\Checker\kompas_files\ГКЮШ.ТЕСТ.00.000.a3d")
     kompasAPI.files.find_missing_drawing()
+    kompasAPI.files.scan_text_files()
     kompasAPI.files.print_all_data()
     #TODO полное закрытие приложения, если работало в скрытом режиме

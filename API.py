@@ -1,5 +1,6 @@
 from win32com.client import gencache, Dispatch
 from Classes import File, Part, Pdf, Assemble, Files
+from typing import Self
 import os
 
 #TODO добавить обработчик отсутствующих файлов сборки
@@ -10,7 +11,7 @@ class API:
         self.application = Dispatch("KOMPAS.Application.7")
         self.application.Visible = True
 
-        self.files = Files()
+        self.files = Files(self)
 
         self.documents = self.application.Documents
         self.path = ''
@@ -35,15 +36,19 @@ class API:
         self.path = path
 
         self.remove_unavailable_documents(document)
-        self.files.add_file(path)
-        self.files.last_added().parent = parent_id
-        parent_for_documents = self.files.last_added().id
+
 
         if document.DocumentType == 4 or document.DocumentType == 5:
+
             kompas_document_3d = self.api7.IKompasDocument3D(document)
             self.part_7 = kompas_document_3d.TopPart
             self.drawing_number = self.get_property_value('Обозначение')
             self.drawing_name = self.get_property_value('Наименование')
+
+            self.files.add_file(path, self)
+            self.files.last_added().parent = parent_id
+            parent_for_documents = self.files.last_added().id
+
             attached_documents = self.check_attached_documents(document)
             product_data_manager = self.api7.IProductDataManager(document)
             property_keeper = self.api7.IPropertyKeeper(self.part_7)
@@ -54,12 +59,12 @@ class API:
                     # проверка привязанных документов
                     for attached_document in attached_documents:
                         if os.path.splitext(path)[0] == os.path.splitext(attached_document)[0]: # path == i без расширения
-                            self.files.add_file(attached_document)
+                            self.files.add_file(attached_document, self)
                             self.files.last_added().parent = parent_for_documents
                             self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
                 else: # поиск чертежа
                     if self.find_cdw(document):
-                        self.files.add_file(self.find_cdw(document))
+                        self.files.add_file(self.find_cdw(document),self)
                         self.files.last_added().parent = parent_for_documents
                         self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
                         product_data_manager.SetObjectAttachedDocuments(property_keeper, self.find_cdw(document))
@@ -73,24 +78,24 @@ class API:
                 cdw = self.find_cdw(document)
 
                 if spw:
-                    self.files.add_file(spw)
+                    self.files.add_file(spw,self)
                     self.files.last_added().parent = parent_for_documents
                     self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
                     documents_for_attach.append(spw)
                 if cdw:
-                    self.files.add_file(cdw)
+                    self.files.add_file(cdw, self)
                     self.files.last_added().parent = parent_for_documents
                     self.files.id_return(parent_for_documents).add_child(self.files.last_added().id)
                     documents_for_attach.append(cdw)
 
                 product_data_manager.SetObjectAttachedDocuments(property_keeper, documents_for_attach)
 
-        #TODO при открытии чертежа или спецификации проверить соответствие обозначению в файле и в основной надписи
-        #TODO при открытии чертежа, проверить наличие спецификации на чертеже, проверить обозначение на соответствие имени файла
-        #TODO при открытии спецификации, проверить на соответствие обозначения
+            #TODO при открытии чертежа или спецификации проверить соответствие обозначению в файле и в основной надписи
+            #TODO при открытии чертежа, проверить наличие спецификации на чертеже, проверить обозначение на соответствие имени файла
+            #TODO при открытии спецификации, проверить на соответствие обозначения
 
-        document.Save()
-        return parent_for_documents
+            document.Save()
+            return parent_for_documents
 
     def get_property_value(self, property_name):
         property_mng = self.api7.IPropertyMng(self.application)
