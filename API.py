@@ -10,7 +10,6 @@ class API:
         self.api7 = gencache.EnsureModule("{69AC2981-37C0-4379-84FD-5DD2F3C0A520}", 0, 1, 0)
         self.application = Dispatch("KOMPAS.Application.7")
         self.application.Visible = True
-
         self.files = Files(self)
 
         self.documents = self.application.Documents
@@ -26,7 +25,7 @@ class API:
     # принимает путь до файла в виде строки
     def open(self, path: str, parent_id: int=None) -> bool | Any:
         #TODO добавить открытие без проверок и исправлений
-
+        self.application.HideMessage = 2
         # добавить проверку на поддерживаемые типы файлов
         if not os.path.exists(path):
             return False
@@ -94,8 +93,10 @@ class API:
             #TODO при открытии чертежа, проверить наличие спецификации на чертеже, проверить обозначение на соответствие имени файла
             #TODO при открытии спецификации, проверить на соответствие обозначения
 
+
             document.Save()
             return parent_for_documents
+        self.application.HideMessage = 0
         return True
 
     def get_property_value(self, property_name):
